@@ -1,23 +1,33 @@
 import urllib2
 import base64
+import struct
 
 
 class message1:
     def getMessage(self, domain, host):
+        #bytes 0-3   NTLM  = self.protocol
+        #bytes 4-7   SSP\0 = self.protocol
+        #bytes 8-11  1000 = type as integer
+        #bytes 12-15 3,B2, 0,0  = flags as integer
+        #bytes 16-19 domainlength, domainlength = domainlength as SHORT (2bytes) x2
+        #bytes 20-23 domainoffsett, 0,0 
+        #bytes 24-27 hostlength, hostlength
+        #bytes 28-31 hostoffset, 0,0
+        #bytes 32+ hoststring, domainstring
         domainlength =struct.pack('<H', len(domain))
-        domainnamenufferoffset  =struct.pack('<I', len(host))
-        hostlenght = struct.pack('<H', len(host))
+        domainNameBufferOffset  =struct.pack('<I', 32 + len(host)) #32 because of number of bytes + length of host string
+        hostlength = struct.pack('<H', len(host))
         ProductMajorVersion = struct.pack('<B', 5)
         ProductMinorVersion = struct.pack('<B', 1)
-        ProductBuild = struct.pack('<H', 2600)
-        VersionReserved1 = struct.pack('<B', 0)
-        VersionReserved2 = struct.pack('<B', 0)
-        VersionReserved3 = struct.pack('<B', 0)
-        NTLMRevisionCurrent = struct.pack('<B', 15)
+        hostOffset = struct.pack('<I', 32)
 
         msg1 = self.protocol + struct.pack('<I',self.type) +  \
             struct.pack('<I', self.flags) + \
-            domainlength + domainnamenufferoffset
+            domainlength  + domainlength + domainNameBufferOffset + \
+            hostlength + hostlength + hostOffset + host + domain
+        print 'msg1', msg1
+        
+        return base64.encodestring(msg1)
 
 
     def __init__(self):
@@ -52,5 +62,7 @@ def makeWebRequest(url, username, password):
 
 
 if __name__ == '__main__':
-    makeWebRequest('https://sharepoint.sonomapartners.com',
-        'sonomapartners\ameyers', '\')
+    msg1  = message1()
+    print msg1.getMessage('domain', 'host')
+    #makeWebRequest('https://sharepoint.sonomapartners.com',
+    #    'sonomapartners\ameyers', '\')
